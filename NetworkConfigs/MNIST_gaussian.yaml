@@ -1,0 +1,24 @@
+Network:
+  epochs: 300
+  batch_size: 250  # 256
+  add_name: "250"
+  sample_batch_size: 256
+  n_steps: 16 # timestep
+  dataset: "MNIST"
+  in_channels: 1
+  data_path: "/data/zhan/CV_data/mnist"
+  lr: 0.003
+  sample_layer_lr_times: 10
+  n_class: 10
+  latent_dim: 32
+  input_size: 32
+  model: "FSVAE" # FSVAE or  FSVAE_large
+  k: 20 # multiplier of channel
+  scheduled: true # whether to apply scheduled sampling
+  loss_func: 'mmd' # mmd or kld
+  mmd_type: 'rbf'
+  mu: 0.0
+  var: 1.0
+  distance_lambda: 0.001
+
+  

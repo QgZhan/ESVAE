@@ -1,0 +1,22 @@
+Network:
+  epochs: 300
+  batch_size: 250
+  sample_batch_size: 128
+  n_steps: 16 # timestep
+  dataset: "CIFAR10"
+  in_channels: 3
+  data_path: "/data/zhan/CV_data/cifar10"
+  lr: 0.001
+  n_class: 10
+  latent_dim: 128
+  input_size: 32
+  model: "FSVAE" # FSVAE, FSVAE_large
+  k: 20 # multiplier of channel
+  scheduled: true # whether to apply scheduled sampling
+  loss_func: 'mmd' # mmd or kld
+  mmd_type: 'rbf'
+  mu: 0.0
+  var: 1.0
+  distance_lambda: 0.001
+
+  
