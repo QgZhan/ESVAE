@@ -6,7 +6,7 @@ Submitted to CVPR2024.
 
 arxiv: https://arxiv.org/abs/2110.00375
 
-![overview](./imgs/ESVAE framework.png?raw=true)
+![overview](./imgs/ESVAE_framework.png?raw=true)
 
 # Get started
 
