@@ -49,8 +49,6 @@ class VanillaVAE(nn.Module):
                     nn.LeakyReLU())
             )
 
-
-
         self.decoder = nn.Sequential(*modules)
 
         self.final_layer = nn.Sequential(
@@ -66,7 +64,6 @@ class VanillaVAE(nn.Module):
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
 
-    
     def encode(self, input):
         result = self.encoder(input)
         result = torch.flatten(result, start_dim=1)
