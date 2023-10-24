@@ -281,8 +281,6 @@ if __name__ == '__main__':
     dataset_name = glv.network_config['dataset']
     data_path = glv.network_config['data_path']
 
-    mu = glv.network_config['mu']
-    var = glv.network_config['var']
     lr = glv.network_config['lr']
     sample_layer_lr_times = glv.network_config['sample_layer_lr_times']
     distance_lambda = glv.network_config['distance_lambda']
@@ -329,11 +327,10 @@ if __name__ == '__main__':
         raise Exception('Unrecognized dataset name.')
     logging.info("dataset loaded")
 
-    if network_config['model'] == 'FSVAE':
-        net = esvae.ESVAE(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda,
-                          mmd_type=mmd_type)
-    elif network_config['model'] == 'FSVAE_large':
-        net = esvae.ESVAELarge(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda, mmd_type=mmd_type)
+    if network_config['model'] == 'ESVAE':
+        net = esvae.ESVAE(device=init_device, distance_lambda=distance_lambda, mmd_type=mmd_type)
+    elif network_config['model'] == 'ESVAE_large':
+        net = esvae.ESVAELarge(device=init_device, distance_lambda=distance_lambda, mmd_type=mmd_type)
     else:
         raise Exception('not defined model')
 

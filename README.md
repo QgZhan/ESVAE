@@ -23,17 +23,17 @@ python init_fid_stats.py
 ```
 
 # Demo
-The following command calculates the Inception score & FID of FSVAE trained on CelebA. After that, it outputs `demo_input.png`, `demo_recons.png`, and `demo_sample.png`.
+The following command calculates the Inception score & FID of ESVAE trained on CelebA. After that, it outputs `demo_input_esvae.png`, `demo_recons_esvae.png`, and `demo_sample_esvae.png`.
 ```
-python demo.py
-```
-
-# Training Fully Spiking VAE
-```
-python main_fsvae exp_name -config NetworkConfigs/dataset_name.yaml
+python demo_esvae.py
 ```
 
-Training settings are defined in `NetworkConfigs/*.yaml`.
+# Training Efficient Spiking Variational Autoencoder
+```
+python main_esvae exp_name -config NetworkConfigs/esvae/dataset_name.yaml
+```
+
+Training settings are defined in `NetworkConfigs/esvae/*.yaml`.
 
 args:
 - name: [required] experiment name

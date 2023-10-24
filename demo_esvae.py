@@ -23,19 +23,19 @@ def test_sample(network, testloader):
         real_img = real_img.to(init_device, non_blocking=True)
         labels = labels.to(init_device, non_blocking=True)
         # direct spike input
-        spike_input = real_img.unsqueeze(-1).repeat(1, 1, 1, 1, n_steps) # (N,C,H,W,T)
+        spike_input = real_img.unsqueeze(-1).repeat(1, 1, 1, 1, n_steps)   # (N,C,H,W,T)
 
-        x_recon, q_z, p_z, sampled_z = network(spike_input, scheduled=False)
+        x_recon, r_q, r_p, sampled_z = network(spike_input, scheduled=False)
 
-        torchvision.utils.save_image((real_img+1)/2, f'demo_imgs/demo_input.png')
-        torchvision.utils.save_image((x_recon+1)/2, f'demo_imgs/demo_recons.png')
+        torchvision.utils.save_image((real_img+1)/2, f'demo_imgs/demo_input_esvae.png')
+        torchvision.utils.save_image((x_recon+1)/2, f'demo_imgs/demo_recons_esvae.png')
 
 
 def sample(network):
     network = network.eval()
     with torch.no_grad():
         sampled_x, sampled_z = network.sample(network_config['batch_size'])
-        torchvision.utils.save_image((sampled_x+1)/2, f'demo_imgs/demo_sample.png')
+        torchvision.utils.save_image((sampled_x+1) / 2, f'demo_imgs/demo_sample_esvae.png')
         
 
 def calc_inception_score(network):
@@ -78,12 +78,15 @@ if __name__ == '__main__':
 
     init_device = torch.device("cuda:0")
     
-    network_config = {"batch_size": 4, "n_steps": 16, "dataset": "CelebA",
+    network_config = {"batch_size": 128, "n_steps": 16, "dataset": "CelebA",
                       "in_channels": 3, "latent_dim": 128, "input_size": 64,
-                      "k": 20, "loss_func": "mmd", "mmd_type": 'rbf', "lr": 0.001}
+                      "k": 20, "loss_func": "mmd", "mmd_type": 'rbf', "lr": 0.001, "distance_lambda": 0.001}
     
     glv.init(network_config, devs=[0])
 
+    distance_lambda = glv.network_config['distance_lambda']
+    loss_func = glv.network_config['loss_func']
+    mmd_type = glv.network_config['mmd_type']
     dataset_name = glv.network_config['dataset']
     data_path = "/data/zhan/CV_data/CelebA"  # specify the path of dataset
     
@@ -91,10 +94,12 @@ if __name__ == '__main__':
     data_path = os.path.expanduser(data_path)
     _, test_loader = load_dataset_snn.load_celebA(data_path)
         
-    net = esvae.FSVAELarge()
+    net = esvae.ESVAELarge(device=init_device, distance_lambda=distance_lambda, mmd_type=mmd_type)
     net = net.to(init_device)
     
-    checkpoint = torch.load('./demo_checkpoint/fsvae_celeba_demo.pth', map_location='cuda:0')
+    checkpoint = torch.load('./demo_checkpoint/esvae_celeba_demo.pth', map_location='cuda:0')
+    # /data/zhan/ESVAE/checkpoint/CelebA/best_celeba_demo/checkpoint.pth
+    # ./demo_checkpoint/esvae_celeba_demo.pth
     net.load_state_dict(checkpoint)
 
     print("calculating inception score...")
@@ -109,8 +114,8 @@ if __name__ == '__main__':
     print(f"Inception score: {inception_s}")
     print(f'FID score: {fid_score}')
     print(f'Autoencoder Frechet score: {autoencoder_frechet_distance}')
-    print('save demo_imgs/demo_input.png')
-    print('save demo_imgs/demo_recons.png')
-    print('save demo_imgs/demo_sample.png')
+    print('save demo_imgs/demo_input_esvae.png')
+    print('save demo_imgs/demo_recons_esvae.png')
+    print('save demo_imgs/demo_sample_esvae.png')
     print("###############################")
     

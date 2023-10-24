@@ -80,7 +80,7 @@ class SampledSpikeAct(torch.autograd.Function):
 
 
 class ESVAE(nn.Module):
-    def __init__(self, device, mu, var, distance_lambda, mmd_type):
+    def __init__(self, device, distance_lambda, mmd_type):
         super().__init__()
 
         in_channels = glv.network_config['in_channels']
@@ -89,8 +89,6 @@ class ESVAE(nn.Module):
         self.n_steps = glv.network_config['n_steps']
 
         self.device = device
-        self.mu = mu
-        self.var = var
         self.distance_lambda = distance_lambda
         self.mmd_type = mmd_type
 
@@ -260,16 +258,14 @@ class ESVAE(nn.Module):
 
 
 class ESVAELarge(ESVAE):
-    def __init__(self, device, mu, var, distance_lambda, mmd_type):
-        super(ESVAELarge, self).__init__(device, mu, var, distance_lambda, mmd_type)
+    def __init__(self, device, distance_lambda, mmd_type):
+        super(ESVAELarge, self).__init__(device, distance_lambda, mmd_type)
         in_channels = glv.network_config['in_channels']
         latent_dim = glv.network_config['latent_dim']
         self.latent_dim = latent_dim
         self.n_steps = glv.network_config['n_steps']
 
         self.device = device
-        self.mu = mu
-        self.var = var
         self.distance_lambda = distance_lambda
         self.mmd_type = mmd_type
 
