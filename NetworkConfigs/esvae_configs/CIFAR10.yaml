@@ -11,13 +11,13 @@ Network:
   n_class: 10
   latent_dim: 128
   input_size: 32
-  model: "FSVAE" # FSVAE, FSVAE_large
+  model: "ESVAE" # ESVAE or ESVAE_large
   k: 20 # multiplier of channel
   scheduled: true # whether to apply scheduled sampling
   loss_func: 'mmd' # mmd or kld
   mmd_type: 'rbf'
-  mu: 0.0
-  var: 1.0
+  mu: 0.0  # the mu of the normal distribution of the sampled latent vector in generating stage
+  var: 1.0  # the mu of the normal distribution of the sampled latent vector in generating stage
   distance_lambda: 0.001
 
   

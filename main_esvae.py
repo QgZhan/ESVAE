@@ -17,8 +17,8 @@ from datasets import load_dataset_snn
 from utils import aboutCudaDevices
 from utils import AverageMeter
 from utils import CountMulAddSNN
-import fsvae_models.fsvae_gaussian as fsvae
-from fsvae_models.snn_layers import LIFSpike
+import svae_models.esvae as esvae
+from svae_models.snn_layers import LIFSpike
 import metrics.inception_score as inception_score
 import metrics.clean_fid as clean_fid
 import metrics.autoencoder_fid as autoencoder_fid
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     parser.add_argument('-checkpoint', action='store', dest='checkpoint',
                         help='The path of checkpoint, if use checkpoint')
     parser.add_argument('-device', type=int)
-    parser.add_argument('-project_save_path', default='/data/zhan/FullySpikingVAE-master/', type=str)
+    parser.add_argument('-project_save_path', default='/data/zhan/ESVAE/', type=str)
 
     try:
         args = parser.parse_args()
@@ -330,10 +330,10 @@ if __name__ == '__main__':
     logging.info("dataset loaded")
 
     if network_config['model'] == 'FSVAE':
-        net = fsvae.FSVAEGaussian(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda,
+        net = esvae.ESVAEGaussian(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda,
                                   mmd_type=mmd_type)
     elif network_config['model'] == 'FSVAE_large':
-        net = fsvae.FSVAELarge(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda, mmd_type=mmd_type)
+        net = esvae.ESVAELarge(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda, mmd_type=mmd_type)
     else:
         raise Exception('not defined model')
 

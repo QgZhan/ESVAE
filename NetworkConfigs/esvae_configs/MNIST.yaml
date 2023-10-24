@@ -4,9 +4,9 @@ Network:
   add_name: "250"
   sample_batch_size: 256
   n_steps: 16 # timestep
-  dataset: "FashionMNIST"
+  dataset: "MNIST"
   in_channels: 1
-  data_path: "/data/zhan/CV_data/FashionMNIST"
+  data_path: "/data/zhan/CV_data/mnist"
   lr: 0.003
   sample_layer_lr_times: 10
   n_class: 10
@@ -17,8 +17,8 @@ Network:
   scheduled: true # whether to apply scheduled sampling
   loss_func: 'mmd' # mmd or kld
   mmd_type: 'rbf'
-  mu: 0.0
-  var: 1.0
+  mu: 0.0  # the mu of the normal distribution of the sampled latent vector in generating stage
+  var: 1.0  # the mu of the normal distribution of the sampled latent vector in generating stage
   distance_lambda: 0.001
 
   

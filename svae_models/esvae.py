@@ -79,7 +79,7 @@ class SampledSpikeAct(torch.autograd.Function):
         return grad_input * hu
 
 
-class FSVAEGaussian(nn.Module):
+class ESVAEGaussian(nn.Module):
     def __init__(self, device, mu, var, distance_lambda, mmd_type):
         super().__init__()
 
@@ -314,9 +314,9 @@ class FSVAEGaussian(nn.Module):
         self.p = (last_p - init_p) * epoch / max_epoch + init_p
 
 
-class FSVAELarge(FSVAEGaussian):
+class ESVAELarge(ESVAEGaussian):
     def __init__(self, device, mu, var, distance_lambda, mmd_type):
-        super(FSVAELarge, self).__init__(device, mu, var, distance_lambda, mmd_type)
+        super(ESVAELarge, self).__init__(device, mu, var, distance_lambda, mmd_type)
         in_channels = glv.network_config['in_channels']
         latent_dim = glv.network_config['latent_dim']
         self.latent_dim = latent_dim

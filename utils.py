@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import pycuda.driver as cuda
 import pycuda.autoinit  # Necessary for using its functions
-import fsvae_models.snn_layers as snn_layers
+import svae_models.snn_layers as snn_layers
 
 
 class AverageMeter(object):

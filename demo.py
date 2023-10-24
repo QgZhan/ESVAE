@@ -8,7 +8,7 @@ import torchvision
 import global_v as glv
 from datasets import load_dataset_snn
 from utils import AverageMeter
-import fsvae_models.fsvae as fsvae
+import svae_models.fsvae as fsvae
 import metrics.inception_score as inception_score
 import metrics.clean_fid as clean_fid
 import metrics.autoencoder_fid as autoencoder_fid

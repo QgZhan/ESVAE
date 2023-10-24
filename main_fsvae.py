@@ -17,8 +17,8 @@ from datasets import load_dataset_snn
 from utils import aboutCudaDevices
 from utils import AverageMeter
 from utils import CountMulAddSNN
-import fsvae_models.fsvae as fsvae
-from fsvae_models.snn_layers import LIFSpike
+import svae_models.fsvae as fsvae
+from svae_models.snn_layers import LIFSpike
 import metrics.inception_score as inception_score
 import metrics.clean_fid as clean_fid
 import metrics.autoencoder_fid as autoencoder_fid

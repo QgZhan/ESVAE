@@ -4,7 +4,7 @@ official implementation of Efficient Spiking Variational Autoencoder。
 
 Submitted to CVPR2024.
 
-arxiv: https://arxiv.org/abs/2110.00375
+arxiv: https://arxiv.org/abs/2310.14839
 
 ![overview](./imgs/ESVAE_framework.png?raw=true)
 
