@@ -1,6 +1,6 @@
 # ESVAE: An Efficient Spiking Variational Autoencoder with Reparameterizable Poisson Spiking Sampling
 
-official implementation of Efficient Spiking Variational Autoencoder。
+official implementation of Efficient Spiking Variational Autoencoder.
 
 Submitted to CVPR2024.
 

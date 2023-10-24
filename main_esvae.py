@@ -53,9 +53,9 @@ def train(network, trainloader, opti, epoch):
     recons_meter = AverageMeter()
     dist_meter = AverageMeter()
 
-    mean_mu = 0
-    mean_log_var = 0
-    mean_sampled_z = 0
+    mean_r_q = 0
+    mean_r_p = 0
+    mean_sampled_z_q = 0
 
     network = network.train()
 
@@ -65,10 +65,10 @@ def train(network, trainloader, opti, epoch):
         labels = labels.to(init_device, non_blocking=True)
         # direct spike input
         spike_input = real_img.unsqueeze(-1).repeat(1, 1, 1, 1, n_steps)  # (N, C, H, W, T)
-        x_recon, mu, log_var, sampled_z = network(spike_input,
+        x_recon, r_q, r_p, sampled_z_q = network(spike_input,
                                                   scheduled=network_config['scheduled'])  # sampled_z (N, latent_dim, T)
 
-        losses = network.loss_function_gaussian_mmd(real_img, x_recon, mu, log_var)
+        losses = network.loss_function_gaussian_mmd(real_img, x_recon, r_q, r_p)
 
         losses['loss'].backward()
 
@@ -78,9 +78,9 @@ def train(network, trainloader, opti, epoch):
         recons_meter.update(losses['Reconstruction_Loss'].detach().cpu().item())
         dist_meter.update(losses['Distance_Loss'].detach().cpu().item())
 
-        mean_mu = (mu.mean(0).detach().cpu() + batch_idx * mean_mu) / (batch_idx + 1)  # (latent_dim)
-        mean_log_var = (log_var.mean(0).detach().cpu() + batch_idx * mean_log_var) / (batch_idx + 1)  # (latent_dim)
-        mean_sampled_z = (sampled_z.mean(0).detach().cpu() + batch_idx * mean_sampled_z) / (batch_idx + 1)  # (C,T)
+        mean_r_q = (r_q.mean(0).detach().cpu() + batch_idx * mean_r_q) / (batch_idx + 1)  # (latent_dim)
+        mean_r_p = (r_p.mean(0).detach().cpu() + batch_idx * mean_r_p) / (batch_idx + 1)  # (latent_dim)
+        mean_sampled_z_q = (sampled_z_q.mean(0).detach().cpu() + batch_idx * mean_sampled_z_q) / (batch_idx + 1)  # (C,T)
 
         print(
             f'Train[{epoch}/{max_epoch}] [{batch_idx}/{len(trainloader)}] Loss: {loss_meter.avg}, RECONS: {recons_meter.avg}, DISTANCE: {dist_meter.avg}')
@@ -100,11 +100,11 @@ def train(network, trainloader, opti, epoch):
     writer.add_scalar('Train/loss', loss_meter.avg, epoch)
     writer.add_scalar('Train/recons_loss', recons_meter.avg, epoch)
     writer.add_scalar('Train/distance', dist_meter.avg, epoch)
-    writer.add_scalar('Train/mean_mu', mean_mu.mean().item(), epoch)
-    writer.add_scalar('Train/mean_log_var', mean_log_var.mean().item(), epoch)
+    writer.add_scalar('Train/mean_r_q', mean_r_q.mean().item(), epoch)
+    writer.add_scalar('Train/mean_r_p', mean_r_p.mean().item(), epoch)
 
-    writer.add_image('Train/mean_sampled_z', mean_sampled_z.unsqueeze(0), epoch)
-    writer.add_histogram(f'Train/mean_sampled_z_distribution', mean_sampled_z.sum(-1), epoch)
+    writer.add_image('Train/mean_sampled_z_q', mean_sampled_z_q.unsqueeze(0), epoch)
+    writer.add_histogram(f'Train/mean_sampled_z_q_distribution', mean_sampled_z_q.sum(-1), epoch)
 
     return loss_meter.avg
 
@@ -117,9 +117,9 @@ def test(network, testloader, epoch):
     recons_meter = AverageMeter()
     dist_meter = AverageMeter()
 
-    mean_mu = 0
-    mean_log_var = 0
-    mean_sampled_z = 0
+    mean_r_q = 0
+    mean_r_p = 0
+    mean_sampled_z_q = 0
 
     count_mul_add, hook_handles = add_hook(net)
 
@@ -131,13 +131,13 @@ def test(network, testloader, epoch):
             # direct spike input
             spike_input = real_img.unsqueeze(-1).repeat(1, 1, 1, 1, n_steps)  # (N,C,H,W,T)
 
-            x_recon, mu, log_var, sampled_z = network(spike_input, scheduled=network_config['scheduled'])
+            x_recon, r_q, r_p, sampled_z_q = network(spike_input, scheduled=network_config['scheduled'])
 
-            losses = network.loss_function_gaussian_mmd(real_img, x_recon, mu, log_var)
+            losses = network.loss_function_gaussian_mmd(real_img, x_recon, r_q, r_p)
 
-            mean_mu = (mu.mean(0).detach().cpu() + batch_idx * mean_mu) / (batch_idx + 1)  # (latent_dim)
-            mean_log_var = (log_var.mean(0).detach().cpu() + batch_idx * mean_log_var) / (batch_idx + 1)  # (latent_dim)
-            mean_sampled_z = (sampled_z.mean(0).detach().cpu() + batch_idx * mean_sampled_z) / (batch_idx + 1)  # (C,T)
+            mean_r_q = (r_q.mean(0).detach().cpu() + batch_idx * mean_r_q) / (batch_idx + 1)  # (latent_dim)
+            mean_r_p = (r_p.mean(0).detach().cpu() + batch_idx * mean_r_p) / (batch_idx + 1)  # (latent_dim)
+            mean_sampled_z_q = (sampled_z_q.mean(0).detach().cpu() + batch_idx * mean_sampled_z_q) / (batch_idx + 1)  # (C,T)
 
             loss_meter.update(losses['loss'].detach().cpu().item())
             recons_meter.update(losses['Reconstruction_Loss'].detach().cpu().item())
@@ -161,16 +161,16 @@ def test(network, testloader, epoch):
     writer.add_scalar('Test/loss', loss_meter.avg, epoch)
     writer.add_scalar('Test/recons_loss', recons_meter.avg, epoch)
     writer.add_scalar('Test/distance', dist_meter.avg, epoch)
-    writer.add_scalar('Test/mean_mu', mean_mu.mean().item(), epoch)
-    writer.add_scalar('Test/mean_log_var', mean_log_var.mean().item(), epoch)
+    writer.add_scalar('Test/mean_r_q', mean_r_q.mean().item(), epoch)
+    writer.add_scalar('Test/mean_r_p', mean_r_p.mean().item(), epoch)
     writer.add_scalar('Test/mul', count_mul_add.mul_sum.item() / len(testloader), epoch)
     writer.add_scalar('Test/add', count_mul_add.add_sum.item() / len(testloader), epoch)
 
     for handle in hook_handles:
         handle.remove()
 
-    writer.add_image('Test/mean_sampled_z', mean_sampled_z.unsqueeze(0), epoch)
-    writer.add_histogram('Test/mean_sampled_z_distribution', mean_sampled_z.sum(-1), epoch)
+    writer.add_image('Test/mean_sampled_z_q', mean_sampled_z_q.unsqueeze(0), epoch)
+    writer.add_histogram('Test/mean_sampled_z_q_distribution', mean_sampled_z_q.sum(-1), epoch)
 
     return loss_meter.avg
 
@@ -178,10 +178,10 @@ def test(network, testloader, epoch):
 def sample(network, epoch, batch_size=128):
     network = network.eval()
     with torch.no_grad():
-        sampled_x, sampled_z = network.sample(batch_size)
+        sampled_x, sampled_z_p = network.sample(batch_size)
         writer.add_images('Sample/sample_img', (sampled_x + 1) / 2, epoch)
-        writer.add_image('Sample/mean_sampled_z', sampled_z.mean(0).unsqueeze(0), epoch)
-        writer.add_histogram('Sample/mean_sampled_z_distribution', sampled_z.mean(0).sum(-1), epoch)
+        writer.add_image('Sample/mean_sampled_z_p', sampled_z_p.mean(0).unsqueeze(0), epoch)
+        writer.add_histogram('Sample/mean_sampled_z_p_distribution', sampled_z_p.mean(0).sum(-1), epoch)
         os.makedirs(f'{args.project_save_path}/checkpoint/{dataset_name}/{args.name}/imgs/sample/', exist_ok=True)
         torchvision.utils.save_image((sampled_x + 1) / 2, f'{args.project_save_path}/checkpoint/{dataset_name}/{args.name}/imgs/sample/epoch{epoch}_sample.png')
 

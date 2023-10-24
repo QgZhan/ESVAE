@@ -186,18 +186,17 @@ class ESVAEGaussian(nn.Module):
         self.gaussian_mmd_loss = MMD_loss(kernel_type=self.mmd_type)
 
     def forward(self, x, scheduled=False):
-        sampled_z, q_z, p_z = self.encode(x, scheduled)
-        x_recon = self.decode(sampled_z)
-        return x_recon, q_z, p_z, sampled_z
+        sampled_z_q, r_q, r_p = self.encode(x, scheduled)
+        x_recon = self.decode(sampled_z_q)
+        return x_recon, r_q, r_p, sampled_z_q
 
     def encode(self, x, scheduled=False, return_firing_rate=False):
         x = self.encoder(x)  # (N,C,H,W,T)
         x = torch.flatten(x, start_dim=1, end_dim=3)  # (N,C*H*W,T)
         latent_x = self.before_latent_layer(x)  # (N,latent_dim,T)
 
-        sampled_z, mu, log_var = self.gaussian_sample(latent_x, latent_x.shape[0])
-        sampled_z = SampledSpikeAct.apply(sampled_z)
-        return sampled_z, mu, log_var
+        sampled_z_q, r_q, r_p = self.gaussian_sample(latent_x, latent_x.shape[0])
+        return sampled_z_q, r_q, r_p
 
     def decode(self, z):
         result = self.decoder_input(z)  # (N,C*H*W,T)
@@ -208,34 +207,33 @@ class ESVAEGaussian(nn.Module):
         return out
 
     def sample(self, batch_size=64):
-        sampled_z, mu, log_var = self.gaussian_sample(batch_size=batch_size)
-        sampled_z = SampledSpikeAct.apply(sampled_z)
-        sampled_x = self.decode(sampled_z)
-        return sampled_x, sampled_z
+        sampled_z_p, _, _ = self.gaussian_sample(batch_size=batch_size)
+        sampled_x = self.decode(sampled_z_p)
+        return sampled_x, sampled_z_p
 
     def gaussian_sample(self, latent_x=None, batch_size=None, mu=None, var=None):
         if latent_x is not None:
-            mu = latent_x.mean(-1).mean(-1, keepdim=True)  # (N)
-            var = latent_x.mean(-1).std(-1, keepdim=True)  # (N)
+            sampled_z_n = torch.randn((batch_size, self.latent_dim)).to(self.device)  # (N, latent_dim)
+            r_p = self.sample_layer(sampled_z_n)
 
-            sampled_q = latent_x.mean(-1)   # (N, latent_dim)
-            sampled_z = latent_x.mean(-1, keepdim=True).repeat((1, 1, self.n_steps))
+            r_q = latent_x.mean(-1, keepdim=True).repeat((1, 1, self.n_steps))
+            sampled_z_q = SampledSpikeAct.apply(r_q)
 
-            sampled_p = torch.randn((batch_size, self.latent_dim)).to(self.device)  # (N, latent_dim)
-            sampled_p = self.sample_layer(sampled_p)
-            return sampled_z, sampled_q, sampled_p
+            r_q = latent_x.mean(-1)   # (N, latent_dim)
+
+            return sampled_z_q, r_q, r_p
         else:
+            sampled_z_n = torch.randn((batch_size, self.latent_dim)).to(self.device)
             # if mu is None and var is None:
             #     mu = self.mu
             #     var = self.var
-
-            sampled_p = torch.randn((batch_size, self.latent_dim)).to(self.device)
             # var = var * torch.ones_like(sampled_p).to(self.device)  # (N, latent_dim)
             # mu = mu * torch.ones_like(sampled_p).to(self.device)  # (N, latent_dim)
-            # sampled_p = mu + sampled_p * var
-            sampled_p = self.sample_layer(sampled_p)
-            sampled_p = sampled_p.unsqueeze(dim=-1).repeat((1, 1, self.n_steps))
-            return sampled_p, None, None
+            # sampled_p = mu + sampled_z_n * var
+            r_p = self.sample_layer(sampled_z_n)
+            r_p = r_p.unsqueeze(dim=-1).repeat((1, 1, self.n_steps))
+            sampled_z_q = SampledSpikeAct.apply(r_p)
+            return sampled_z_q, None, None
 
     def loss_function_mmd(self, input_img, recons_img, q_z, p_z):
         """
@@ -257,15 +255,15 @@ class ESVAEGaussian(nn.Module):
         loss = recons_loss + mmd_loss
         return {'loss': loss, 'Reconstruction_Loss': recons_loss, 'Distance_Loss': mmd_loss}
 
-    def loss_function_gaussian_mmd(self, input_img, recons_img, q_z, p_z):
+    def loss_function_gaussian_mmd(self, input_img, recons_img, r_q, r_p):
         """
-        q_z is q(z|x): (N,latent_dim)
-        p_z is p(z): (N,latent_dim)
+        r_q is q(z|x): (N,latent_dim)
+        r_p is p(z): (N,latent_dim)
         """
         recons_loss = F.mse_loss(recons_img, input_img)
-        print(q_z.shape, q_z.max(), q_z.min(), q_z.mean())
-        print(p_z.shape, p_z.max(), p_z.min(), p_z.mean())
-        mmd_loss = self.gaussian_mmd_loss(q_z, p_z)
+        # print(r_p.shape, r_p.max(), r_p.min(), r_p.mean())
+        # print(r_q.shape, r_q.max(), r_q.min(), r_q.mean())
+        mmd_loss = self.gaussian_mmd_loss(r_q, r_p)
 
         loss = recons_loss + self.distance_lambda * mmd_loss
         return {'loss': loss, 'Reconstruction_Loss': recons_loss, 'Distance_Loss': mmd_loss}
