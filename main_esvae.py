@@ -68,7 +68,7 @@ def train(network, trainloader, opti, epoch):
         x_recon, r_q, r_p, sampled_z_q = network(spike_input,
                                                   scheduled=network_config['scheduled'])  # sampled_z (N, latent_dim, T)
 
-        losses = network.loss_function_gaussian_mmd(real_img, x_recon, r_q, r_p)
+        losses = network.loss_function_mmd(real_img, x_recon, r_q, r_p)
 
         losses['loss'].backward()
 
@@ -133,7 +133,7 @@ def test(network, testloader, epoch):
 
             x_recon, r_q, r_p, sampled_z_q = network(spike_input, scheduled=network_config['scheduled'])
 
-            losses = network.loss_function_gaussian_mmd(real_img, x_recon, r_q, r_p)
+            losses = network.loss_function_mmd(real_img, x_recon, r_q, r_p)
 
             mean_r_q = (r_q.mean(0).detach().cpu() + batch_idx * mean_r_q) / (batch_idx + 1)  # (latent_dim)
             mean_r_p = (r_p.mean(0).detach().cpu() + batch_idx * mean_r_p) / (batch_idx + 1)  # (latent_dim)
@@ -294,7 +294,7 @@ if __name__ == '__main__':
     except:
         add_name = None
 
-    args.name = f'gaussian_mu-{mu}_var-{var}_lr-{lr}_lambda-{distance_lambda}_loss_func-{loss_func}_mmd_type-{mmd_type}_sample_layer_lr_times-{sample_layer_lr_times}-latent_dim-{latent_dim}'
+    args.name = f'esvae_lr-{lr}_lambda-{distance_lambda}_loss_func-{loss_func}_mmd_type-{mmd_type}_sample_layer_lr_times-{sample_layer_lr_times}-latent_dim-{latent_dim}'
 
     if add_name is not None:
         args.name = add_name + '-' + args.name
@@ -330,8 +330,8 @@ if __name__ == '__main__':
     logging.info("dataset loaded")
 
     if network_config['model'] == 'FSVAE':
-        net = esvae.ESVAEGaussian(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda,
-                                  mmd_type=mmd_type)
+        net = esvae.ESVAE(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda,
+                          mmd_type=mmd_type)
     elif network_config['model'] == 'FSVAE_large':
         net = esvae.ESVAELarge(device=init_device, mu=mu, var=var, distance_lambda=distance_lambda, mmd_type=mmd_type)
     else:

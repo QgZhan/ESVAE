@@ -79,7 +79,7 @@ class SampledSpikeAct(torch.autograd.Function):
         return grad_input * hu
 
 
-class ESVAEGaussian(nn.Module):
+class ESVAE(nn.Module):
     def __init__(self, device, mu, var, distance_lambda, mmd_type):
         super().__init__()
 
@@ -183,7 +183,7 @@ class ESVAEGaussian(nn.Module):
             nn.Sigmoid()
         )
 
-        self.gaussian_mmd_loss = MMD_loss(kernel_type=self.mmd_type)
+        self.mmd_loss = MMD_loss(kernel_type=self.mmd_type)
 
     def forward(self, x, scheduled=False):
         sampled_z_q, r_q, r_p = self.encode(x, scheduled)
@@ -235,27 +235,7 @@ class ESVAEGaussian(nn.Module):
             sampled_z_q = SampledSpikeAct.apply(r_p)
             return sampled_z_q, None, None
 
-    def loss_function_mmd(self, input_img, recons_img, q_z, p_z):
-        """
-        q_z is q(z|x): (N,latent_dim,k,T)
-        p_z is p(z): (N,latent_dim,k,T)
-        """
-        # print("in mmd real_img: ", input_img.shape, input_img.max(), input_img.min(), input_img.mean())
-        # print("in mmd x_recon: ", recons_img.shape, recons_img.max(), recons_img.min(), recons_img.mean())
-        recons_loss = F.mse_loss(recons_img, input_img)
-        # print("in mmd loss recon loss is:  ", recons_loss.item())
-        q_z_ber = torch.mean(q_z, dim=2)  # (N, latent_dim, T)
-        p_z_ber = torch.mean(p_z, dim=2)  # (N, latent_dim, T)
-        # print("in mmd q_z_ber: ", q_z_ber.shape, q_z_ber.max(), q_z_ber.min(), q_z_ber.mean())
-        # print("in mmd p_z_ber: ", p_z_ber.shape, p_z_ber.max(), p_z_ber.min(), p_z_ber.mean())
-
-        # kld_loss = torch.mean((q_z_ber - p_z_ber)**2)
-        mmd_loss = torch.mean((self.psp(q_z_ber) - self.psp(p_z_ber)) ** 2)
-        # print("in mmd mmd_loss: ", mmd_loss.item())
-        loss = recons_loss + mmd_loss
-        return {'loss': loss, 'Reconstruction_Loss': recons_loss, 'Distance_Loss': mmd_loss}
-
-    def loss_function_gaussian_mmd(self, input_img, recons_img, r_q, r_p):
+    def loss_function_mmd(self, input_img, recons_img, r_q, r_p):
         """
         r_q is q(z|x): (N,latent_dim)
         r_p is p(z): (N,latent_dim)
@@ -263,43 +243,10 @@ class ESVAEGaussian(nn.Module):
         recons_loss = F.mse_loss(recons_img, input_img)
         # print(r_p.shape, r_p.max(), r_p.min(), r_p.mean())
         # print(r_q.shape, r_q.max(), r_q.min(), r_q.mean())
-        mmd_loss = self.gaussian_mmd_loss(r_q, r_p)
+        mmd_loss = self.mmd_loss(r_q, r_p)
 
         loss = recons_loss + self.distance_lambda * mmd_loss
         return {'loss': loss, 'Reconstruction_Loss': recons_loss, 'Distance_Loss': mmd_loss}
-
-    def loss_function_gaussian_kld(self, input_img, recons_img, mu, log_var):
-        """
-        q_z is q(z|x): (N,latent_dim,k,T)
-        p_z is p(z): (N,latent_dim,k,T)
-        """
-        recons_loss = F.mse_loss(recons_img, input_img)
-
-        # kld_loss = -0.5 * (1 + 2 * log_var - mu ** 2 - log_var.exp() - 0.25 + mu)
-        # kld_loss = -torch.log(torch.tensor([10]).to(self.device)) - log_var + 200 * (
-        #             log_var.exp() + mu ** 2 - mu + 0.25) - 0.5
-        kld_loss = (torch.log(torch.tensor([self.var]).to(mu.device)) - 0.5 * log_var) + \
-                   (1 / (2 * self.var**2)) * (log_var.exp() + (mu - self.mu)**2) - 0.5
-        kld_loss = kld_loss.mean(0).mean(0)
-
-        loss = recons_loss + self.distance_lambda * kld_loss
-        return {'loss': loss, 'Reconstruction_Loss': recons_loss, 'Distance_Loss': kld_loss}
-
-    def loss_function_kld(self, input_img, recons_img, q_z, p_z):
-        """
-        q_z is q(z|x): (N,latent_dim,k,T)
-        p_z is p(z): (N,latent_dim,k,T)
-        """
-        recons_loss = F.mse_loss(recons_img, input_img)
-        prob_q = torch.mean(q_z, dim=2)  # (N, latent_dim, T)
-        prob_p = torch.mean(p_z, dim=2)  # (N, latent_dim, T)
-
-        kld_loss = prob_q * torch.log((prob_q + 1e-2) / (prob_p + 1e-2)) + (1 - prob_q) * torch.log(
-            (1 - prob_q + 1e-2) / (1 - prob_p + 1e-2))
-        kld_loss = torch.mean(torch.sum(kld_loss, dim=(1, 2)))
-
-        loss = recons_loss + 1e-4 * kld_loss
-        return {'loss': loss, 'Reconstruction_Loss': recons_loss, 'Distance_Loss': kld_loss}
 
     def weight_clipper(self):
         with torch.no_grad():
@@ -312,7 +259,7 @@ class ESVAEGaussian(nn.Module):
         self.p = (last_p - init_p) * epoch / max_epoch + init_p
 
 
-class ESVAELarge(ESVAEGaussian):
+class ESVAELarge(ESVAE):
     def __init__(self, device, mu, var, distance_lambda, mmd_type):
         super(ESVAELarge, self).__init__(device, mu, var, distance_lambda, mmd_type)
         in_channels = glv.network_config['in_channels']
