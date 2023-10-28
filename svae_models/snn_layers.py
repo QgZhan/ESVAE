@@ -337,9 +337,10 @@ class MembraneOutputLayer(nn.Module):
     """
     outputs the last time membrane potential of the LIF neuron with V_th=infty
     """
-    def __init__(self) -> None:
+    def __init__(self, n_steps=None) -> None:
         super().__init__()
-        n_steps = glv.n_steps
+        if n_steps is None:
+            n_steps = glv.n_steps
 
         arr = torch.arange(n_steps-1,-1,-1)
         self.register_buffer("coef", torch.pow(0.8, arr)[None,None,None,None,:]) # (1,1,1,1,T)
